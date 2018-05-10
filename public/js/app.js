@@ -47507,7 +47507,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
     },
     claimGas: function claimGas() {
 
-      this.Neon.claimGas({ net: 'MainNet', address: this.account.address, privateKey: this.privateKey }).then(function (config) {
+      this.Neon.claimGas({ net: 'MainNet', address: this.account.address, privateKey: this.account.privateKey }).then(function (config) {
         console.log(config.response);
         alert('Gas CLAIMED!');
       }).catch(function (config) {

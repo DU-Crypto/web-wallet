@@ -184,7 +184,7 @@
       },
           claimGas: function(){
 
-            this.Neon.claimGas({net: 'MainNet',address:this.account.address,privateKey: this.privateKey})
+            this.Neon.claimGas({net: 'MainNet',address:this.account.address,privateKey: this.account.privateKey})
             .then(config => {
               console.log(config.response)
               alert('Gas CLAIMED!')
