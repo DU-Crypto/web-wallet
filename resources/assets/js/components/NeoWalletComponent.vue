@@ -17,6 +17,7 @@
                         <br>
                         <b>GAS: </b> {{parseFloat(balance.assets.GAS.balance)}}
                         <br>
+                        Total Balance USD: ${{(gasPrice * parseFloat(balance.assets.GAS.balance) + neoPrice * parseInt(balance.assets.NEO.balance)).toFixed(2) }}
                         <input placeholder="NEP-5 Script Hash" class="form-control" v-model="scriptHash">
                         <button class="btn btn-sm btn-success" v-on:click="addToken()">Add Token</button>
                         <ul>
@@ -85,7 +86,9 @@
             tokens: [],
             neoSend:0,
             gasSend:0,
-            sendAddr:''
+            sendAddr:'',
+            gasPrice: 0.00,
+            neoPrice: 0.00
           }
         },
         created(){
@@ -104,11 +107,18 @@
         },
         methods:{
           createAccount:function(){
+
             this.account =new wallet.Account(this.privateKey).decrypt(this.phrase);
             var balance = new wallet.Balance({net: 'MainNet', address: this.account.address})
             var that = this;
             api.neonDB.getBalance('MainNet',this.account.address).then(obj => {
               that.balance = obj;
+              api.cmc.getPrice('GAS').then(res => {
+                that.gasPrice = res;
+              })
+              api.cmc.getPrice('NEO').then(res => {
+                that.neoPrice = res;
+              })
 
               that.loggedin = true;
             }).catch(err => {

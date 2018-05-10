@@ -47405,6 +47405,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   mounted: function mounted() {
@@ -47422,7 +47423,9 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
       tokens: [],
       neoSend: 0,
       gasSend: 0,
-      sendAddr: ''
+      sendAddr: '',
+      gasPrice: 0.00,
+      neoPrice: 0.00
     };
   },
   created: function created() {
@@ -47439,11 +47442,18 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
   methods: {
     createAccount: function createAccount() {
+
       this.account = new wallet.Account(this.privateKey).decrypt(this.phrase);
       var balance = new wallet.Balance({ net: 'MainNet', address: this.account.address });
       var that = this;
       api.neonDB.getBalance('MainNet', this.account.address).then(function (obj) {
         that.balance = obj;
+        api.cmc.getPrice('GAS').then(function (res) {
+          that.gasPrice = res;
+        });
+        api.cmc.getPrice('NEO').then(function (res) {
+          that.neoPrice = res;
+        });
 
         that.loggedin = true;
       }).catch(function (err) {
@@ -47624,7 +47634,18 @@ var render = function() {
                         "\n                    "
                     ),
                     _c("br"),
-                    _vm._v(" "),
+                    _vm._v(
+                      "\n                    Total Balance USD: $" +
+                        _vm._s(
+                          (
+                            _vm.gasPrice *
+                              parseFloat(_vm.balance.assets.GAS.balance) +
+                            _vm.neoPrice *
+                              parseInt(_vm.balance.assets.NEO.balance)
+                          ).toFixed(2)
+                        ) +
+                        "\n                    "
+                    ),
                     _c("input", {
                       directives: [
                         {
