@@ -13872,9 +13872,8 @@ module.exports = __webpack_require__(44);
 
 /***/ }),
 /* 12 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
 
 /**
  * First we will load all of this project's JavaScript dependencies which
@@ -47372,6 +47371,40 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   mounted: function mounted() {
@@ -47386,7 +47419,10 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
       privateKey: '',
       phrase: '',
       loggedin: false,
-      tokens: []
+      tokens: [],
+      neoSend: 0,
+      gasSend: 0,
+      sendAddr: ''
     };
   },
   created: function created() {
@@ -47400,36 +47436,74 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
       var that = this;
       api.neonDB.getBalance('MainNet', this.account.address).then(function (obj) {
         that.balance = obj;
-        var scriptHashes = ['34579e4614ac1a7bd295372d3de8621770c76cdc', 'b951ecbbc5fe37a9c280a76cb0ce0014827294cf', 'ecc6b20d3ccac1ee9ef109af5a7cdb85706b1df9'];
 
-        scriptHashes.forEach(function (item, index, array) {
-          var getName = { scriptHash: item, operation: 'name', args: [] };
-          var getDecimals = { scriptHash: item, operation: 'decimals', args: [] };
-          var getSymbol = { scriptHash: item, operation: 'symbol', args: [] };
-          var getTotalSupply = { scriptHash: item, operation: 'totalSupply', args: [] };
-          var getBalance = {
-            scriptHash: item,
-            operation: 'balanceOf',
-            args: [that.Neon.u.reverseHex(that.Neon.u.str2hexstring(that.account.address))]
-          };
-          console.log(item);
-          var script = that.Neon.create.script([getName, getDecimals, getSymbol, getTotalSupply, getBalance]);
-          Neon.rpc.Query.invokeScript(script).execute('http://seed3.neo.org:20332').then(function (res) {
-            console.log(res); // You should get a result with state: "HALT, BREAK"
-            if (res.result.state != "FAULT, BREAK") {
-              var token = { name: that.Neon.u.hexstring2str(res.result.stack[0].value), decimals: res.result.stack[1].value, symbol: that.Neon.u.hexstring2str(res.result.stack[2].value),
-                totalSupply: that.Neon.u.hexstring2str(res.result.stack[3].value), balance: that.Neon.u.hexstring2str(res.result.stack[4].value) };
-              that.tokens.push(token);
-            }
-          });
-        });
         that.loggedin = true;
       }).catch(function (err) {
         console.log(err);
       });
     },
-    sendAsset: function sendAsset() {
+    addToken: function addToken() {
+      /*
+      const scriptHashes = [
+        '34579e4614ac1a7bd295372d3de8621770c76cdc',
+        'b951ecbbc5fe37a9c280a76cb0ce0014827294cf',
+        'ecc6b20d3ccac1ee9ef109af5a7cdb85706b1df9'
+       ];
+       */
+      var that = this;
+      var getName = { scriptHash: this.scriptHash, operation: 'name', args: [] };
+      var getDecimals = { scriptHash: this.scriptHash, operation: 'decimals', args: [] };
+      var getSymbol = { scriptHash: this.scriptHash, operation: 'symbol', args: [] };
+      var getTotalSupply = { scriptHash: this.scriptHash, operation: 'totalSupply', args: [] };
+      var getBalance = {
+        scriptHash: this.scriptHash,
+        operation: 'balanceOf',
+        args: [that.Neon.u.reverseHex(that.Neon.u.str2hexstring(that.account.address))]
+      };
+      var script = that.Neon.create.script([getName, getDecimals, getSymbol, getTotalSupply, getBalance]);
+      Neon.rpc.Query.invokeScript(script).execute('http://seed3.neo.org:20332').then(function (res) {
+        console.log(res); // You should get a result with state: "HALT, BREAK"
+        if (res.result.state != "FAULT, BREAK") {
+          var token = { name: that.Neon.u.hexstring2str(res.result.stack[0].value), decimals: res.result.stack[1].value, symbol: that.Neon.u.hexstring2str(res.result.stack[2].value),
+            totalSupply: that.Neon.u.hexstring2str(res.result.stack[3].value), balance: that.Neon.u.hexstring2str(res.result.stack[4].value) };
+          that.tokens.push(token);
+        }
+      });
+    },
+    sendAssetPrompt: function sendAssetPrompt() {
       console.log('sendAsset Clicked!');
+      $("#assetModal").modal();
+    },
+    sendAsset: function sendAsset() {
+      var _this = this;
+
+      // We want to send 1 NEO and 1 GAS to ALq7AWrhAueN6mJNqk6FHJjnsEoPRytLdW
+      if (this.neoSend > 0 && this.gasSend > 0) {
+        var intent = api.makeIntent({ NEO: this.neoSend, GAS: this.gasSend }, this.sendAddr);
+      } else if (this.neoSend > 0 && this.gasSend <= 0) {
+        var intent = api.makeIntent({ NEO: this.neoSend }, this.sendAddr);
+      } else if (this.neoSend <= 0 && this.gasSend > 0) {
+        var intent = api.makeIntent({ GAS: this.gasSend }, this.sendAddr);
+      } else {
+        alert('Must send an asset bigger than 0!');
+      }
+      console.log(intent); // This is an array of 2 Intent objects, one for each asset
+
+      var config = {
+        net: 'MainNet', // The network to perform the action, MainNet or TestNet.
+        address: this.account.address, // This is the address which the assets come from.
+        privateKey: this.account.privateKey,
+        intents: intent
+      };
+      this.Neon.sendAsset(config).then(function (config) {
+        alert("Success txid: " + config.response.txid);
+        var that = _this;
+        api.neonDB.getBalance('MainNet', _this.account.address).then(function (obj) {
+          that.balance = obj;
+        }).catch(function (config) {
+          console.log(config);
+        });
+      });
     },
     claimGas: function claimGas() {
 
@@ -47543,6 +47617,41 @@ var render = function() {
                     ),
                     _c("br"),
                     _vm._v(" "),
+                    _c("input", {
+                      directives: [
+                        {
+                          name: "model",
+                          rawName: "v-model",
+                          value: _vm.scriptHash,
+                          expression: "scriptHash"
+                        }
+                      ],
+                      staticClass: "form-control",
+                      attrs: { placeholder: "NEP-5 Script Hash" },
+                      domProps: { value: _vm.scriptHash },
+                      on: {
+                        input: function($event) {
+                          if ($event.target.composing) {
+                            return
+                          }
+                          _vm.scriptHash = $event.target.value
+                        }
+                      }
+                    }),
+                    _vm._v(" "),
+                    _c(
+                      "button",
+                      {
+                        staticClass: "btn btn-sm btn-success",
+                        on: {
+                          click: function($event) {
+                            _vm.addToken()
+                          }
+                        }
+                      },
+                      [_vm._v("Add Token")]
+                    ),
+                    _vm._v(" "),
                     _c(
                       "ul",
                       _vm._l(_vm.tokens, function(token) {
@@ -47561,7 +47670,7 @@ var render = function() {
                         "button",
                         {
                           staticClass: "btn btn-sm btn-primary",
-                          on: { click: _vm.sendAsset }
+                          on: { click: _vm.sendAssetPrompt }
                         },
                         [_vm._v("Send")]
                       )
@@ -47583,10 +47692,149 @@ var render = function() {
           1
         )
       ])
-    ])
+    ]),
+    _vm._v(" "),
+    _c(
+      "div",
+      {
+        staticClass: "modal fade",
+        attrs: { id: "assetModal", role: "dialog" }
+      },
+      [
+        _c("div", { staticClass: "modal-dialog" }, [
+          _c("div", { staticClass: "modal-content" }, [
+            _vm._m(0),
+            _vm._v(" "),
+            _c("div", { staticClass: "modal-body" }, [
+              _c("div", { staticClass: "form-group" }, [
+                _c("label", { attrs: { for: "sendAddr" } }, [
+                  _vm._v("Address")
+                ]),
+                _vm._v(" "),
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.sendAddr,
+                      expression: "sendAddr"
+                    }
+                  ],
+                  staticClass: "form-control",
+                  attrs: { id: "sendAddr" },
+                  domProps: { value: _vm.sendAddr },
+                  on: {
+                    input: function($event) {
+                      if ($event.target.composing) {
+                        return
+                      }
+                      _vm.sendAddr = $event.target.value
+                    }
+                  }
+                })
+              ]),
+              _vm._v(" "),
+              _c("div", { staticClass: "form-group" }, [
+                _c("label", { attrs: { for: "neo-asset" } }, [_vm._v("NEO:")]),
+                _vm._v(" "),
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.neoSend,
+                      expression: "neoSend"
+                    }
+                  ],
+                  staticClass: "form-control",
+                  attrs: { id: "neo-asset", type: "number" },
+                  domProps: { value: _vm.neoSend },
+                  on: {
+                    input: function($event) {
+                      if ($event.target.composing) {
+                        return
+                      }
+                      _vm.neoSend = $event.target.value
+                    }
+                  }
+                })
+              ]),
+              _vm._v(" "),
+              _c("div", { staticClass: "form-group" }, [
+                _c("label", { attrs: { for: "gas-asset" } }, [_vm._v("GAS:")]),
+                _vm._v(" "),
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.gasSend,
+                      expression: "gasSend"
+                    }
+                  ],
+                  staticClass: "form-control",
+                  attrs: { id: "gas-asset", type: "number" },
+                  domProps: { value: _vm.gasSend },
+                  on: {
+                    input: function($event) {
+                      if ($event.target.composing) {
+                        return
+                      }
+                      _vm.gasSend = $event.target.value
+                    }
+                  }
+                })
+              ])
+            ]),
+            _vm._v(" "),
+            _c("div", { staticClass: "modal-footer" }, [
+              _c(
+                "button",
+                {
+                  staticClass: "btn btn-primary",
+                  attrs: { type: "button" },
+                  on: { click: _vm.sendAsset }
+                },
+                [
+                  _vm._v("Send "),
+                  _c("span", { staticClass: "glyphicon glyphicon-send" })
+                ]
+              ),
+              _vm._v(" "),
+              _vm._m(1)
+            ])
+          ])
+        ])
+      ]
+    )
   ])
 }
-var staticRenderFns = []
+var staticRenderFns = [
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "modal-header" }, [
+      _c("h4", { staticClass: "modal-title" }, [_vm._v("Send Asset")])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c(
+      "button",
+      {
+        staticClass: "btn btn-danger",
+        attrs: { type: "button", "data-dismiss": "modal" }
+      },
+      [
+        _vm._v("Close "),
+        _c("span", { staticClass: "glyphicon glyphicon-remove" })
+      ]
+    )
+  }
+]
 render._withStripped = true
 module.exports = { render: render, staticRenderFns: staticRenderFns }
 if (false) {

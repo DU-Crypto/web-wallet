@@ -17,11 +17,13 @@
                         <br>
                         <b>GAS: </b> {{parseFloat(balance.assets.GAS.balance)}}
                         <br>
+                        <input placeholder="NEP-5 Script Hash" class="form-control" v-model="scriptHash">
+                        <button class="btn btn-sm btn-success" v-on:click="addToken()">Add Token</button>
                         <ul>
                           <li v-for="token in tokens">{{token.symbol}}: {{parseFloat(token.balance)}}</li>
                         </ul>
                         <div class="form-group">
-                          <button class="btn btn-sm btn-primary" v-on:click="sendAsset">Send</button>
+                          <button class="btn btn-sm btn-primary" v-on:click="sendAssetPrompt">Send</button>
                         </div>
                         <div class="form-group">
                           <button class="btn btn-sm btn-success" v-on:click="claimGas">Claim Gas</button>
@@ -30,6 +32,38 @@
                   </transition>
                 </div>
             </div>
+        </div>
+
+        <!-- Modal -->
+        <div id="assetModal" class="modal fade" role="dialog">
+          <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+              <div class="modal-header">
+                <h4 class="modal-title">Send Asset</h4>
+              </div>
+              <div class="modal-body">
+                <div class="form-group">
+                  <label for="sendAddr">Address</label>
+                  <input id="sendAddr" v-model="sendAddr" class="form-control">
+                </div>
+                <div class="form-group">
+                  <label for="neo-asset">NEO:</label>
+                  <input id="neo-asset" type="number" v-model="neoSend" class="form-control">
+                </div>
+                <div class="form-group">
+                  <label for="gas-asset">GAS:</label>
+                  <input id="gas-asset" type="number" v-model="gasSend" class="form-control">
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-primary"  v-on:click="sendAsset">Send <span class="glyphicon glyphicon-send"></span></button>
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Close <span class="glyphicon glyphicon-remove"></span></button>
+              </div>
+            </div>
+
+          </div>
         </div>
     </div>
 </template>
@@ -48,7 +82,10 @@
             privateKey: '',
             phrase: '',
             loggedin:false,
-            tokens: []
+            tokens: [],
+            neoSend:0,
+            gasSend:0,
+            sendAddr:''
           }
         },
         created(){
@@ -62,39 +99,7 @@
             var that = this;
             api.neonDB.getBalance('MainNet',this.account.address).then(obj => {
               that.balance = obj;
-              const scriptHashes = [
-                '34579e4614ac1a7bd295372d3de8621770c76cdc',
-                'b951ecbbc5fe37a9c280a76cb0ce0014827294cf',
-                'ecc6b20d3ccac1ee9ef109af5a7cdb85706b1df9'
 
-              ];
-
-
-              scriptHashes.forEach(function(item,index,array){
-                var getName = { scriptHash:item, operation: 'name', args: [] }
-                var getDecimals = { scriptHash:item, operation: 'decimals', args: [] }
-                var getSymbol = { scriptHash:item, operation: 'symbol', args: [] }
-                var getTotalSupply = { scriptHash:item, operation: 'totalSupply', args: [] }
-                var getBalance = {
-                  scriptHash: item,
-                  operation: 'balanceOf',
-                  args:[that.Neon.u.reverseHex(that.Neon.u.str2hexstring(that.account.address))]
-                };
-                console.log(item);
-                var script = that.Neon.create.script([getName, getDecimals, getSymbol, getTotalSupply,getBalance]);
-                Neon.rpc.Query.invokeScript(script)
-                .execute('http://seed3.neo.org:20332')
-                .then(res => {
-                  console.log(res) // You should get a result with state: "HALT, BREAK"
-                  if(res.result.state != "FAULT, BREAK"){
-                    var token ={name:that.Neon.u.hexstring2str(res.result.stack[0].value), decimals: res.result.stack[1].value,symbol:that.Neon.u.hexstring2str(res.result.stack[2].value),
-                    totalSupply:that.Neon.u.hexstring2str(res.result.stack[3].value),balance:that.Neon.u.hexstring2str(res.result.stack[4].value)};
-                    that.tokens.push(token);
-                  }
-
-                });
-
-              });
               that.loggedin = true;
             }).catch(err => {
               console.log(err);
@@ -102,9 +107,81 @@
 
 
           },
-          sendAsset: function(){
-            console.log('sendAsset Clicked!');
+          addToken:function(){
+            /*
+            const scriptHashes = [
+              '34579e4614ac1a7bd295372d3de8621770c76cdc',
+              'b951ecbbc5fe37a9c280a76cb0ce0014827294cf',
+              'ecc6b20d3ccac1ee9ef109af5a7cdb85706b1df9'
+
+            ];
+
+            */
+            var that = this;
+            var getName = { scriptHash:this.scriptHash, operation: 'name', args: [] }
+            var getDecimals = { scriptHash:this.scriptHash, operation: 'decimals', args: [] }
+            var getSymbol = { scriptHash:this.scriptHash, operation: 'symbol', args: [] }
+            var getTotalSupply = { scriptHash:this.scriptHash, operation: 'totalSupply', args: [] }
+            var getBalance = {
+              scriptHash: this.scriptHash,
+              operation: 'balanceOf',
+              args:[that.Neon.u.reverseHex(that.Neon.u.str2hexstring(that.account.address))]
+            };
+            var script = that.Neon.create.script([getName, getDecimals, getSymbol, getTotalSupply,getBalance]);
+            Neon.rpc.Query.invokeScript(script)
+            .execute('http://seed3.neo.org:20332')
+            .then(res => {
+              console.log(res) // You should get a result with state: "HALT, BREAK"
+              if(res.result.state != "FAULT, BREAK"){
+                var token ={name:that.Neon.u.hexstring2str(res.result.stack[0].value), decimals: res.result.stack[1].value,symbol:that.Neon.u.hexstring2str(res.result.stack[2].value),
+                totalSupply:that.Neon.u.hexstring2str(res.result.stack[3].value),balance:that.Neon.u.hexstring2str(res.result.stack[4].value)};
+                that.tokens.push(token);
+              }
+
+            });
+
           },
+          sendAssetPrompt: function(){
+            console.log('sendAsset Clicked!');
+            $("#assetModal").modal()
+          },
+          sendAsset: function(){
+                    // We want to send 1 NEO and 1 GAS to ALq7AWrhAueN6mJNqk6FHJjnsEoPRytLdW
+          if(this.neoSend >0 && this.gasSend > 0){
+            var intent = api.makeIntent({NEO:this.neoSend, GAS:this.gasSend}, this.sendAddr)
+
+          }
+          else if(this.neoSend >0 && this.gasSend <= 0){
+          var intent = api.makeIntent({NEO:this.neoSend}, this.sendAddr)
+
+          }
+          else if(this.neoSend <=0 && this.gasSend > 0){
+            var intent = api.makeIntent({GAS:this.gasSend}, this.sendAddr)
+
+          }
+          else{
+            alert('Must send an asset bigger than 0!')
+          }
+          console.log(intent) // This is an array of 2 Intent objects, one for each asset
+
+          const config = {
+            net: 'MainNet', // The network to perform the action, MainNet or TestNet.
+            address: this.account.address,  // This is the address which the assets come from.
+            privateKey: this.account.privateKey,
+            intents: intent
+          }
+          this.Neon.sendAsset(config)
+          .then(config => {
+            alert("Success txid: "+config.response.txid)
+            var that = this;
+            api.neonDB.getBalance('MainNet',this.account.address).then(obj => {
+              that.balance = obj;
+          })
+          .catch(config => {
+            console.log(config)
+          })
+        })
+      },
           claimGas: function(){
 
             this.Neon.claimGas({net: 'MainNet',address:this.account.address,privateKey: this.privateKey})
