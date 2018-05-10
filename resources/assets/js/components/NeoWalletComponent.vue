@@ -90,6 +90,16 @@
         },
         created(){
           this.Neon = Neon.default;
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/background.js').then(function(registration) {
+
+              }, function(err) {
+                // registration failed :(
+                console.log('ServiceWorker registration failed: ', err);
+              });
+            });
+          }
 
         },
         methods:{
